@@ -31,6 +31,41 @@ function reloadContainers()
   end
 end
 
+-- Auto-apilado al mover ítems (QoL): si `item` es un stackable normal que se está
+-- soltando dentro de un contenedor y en ese mismo contenedor ya existe un stack NO
+-- lleno del mismo ítem, devuelve la posición de ese slot para redirigir ahí el move.
+-- El servidor sigue siendo la fuente de verdad: solo elegimos un mejor destino; el
+-- merge (cap 100) y el remanente los resuelve el server. Devuelve nil si no aplica.
+-- v1: excluye fluidos/splashes (usan subType como identidad) y solo mira la página visible.
+function findMergeSlotPosition(item, toPos)
+  if not item or not item:isItem() then return nil end
+  if not item:isStackable() or item:isFluidContainer() then return nil end
+  -- x == 65535 (0xFFFF) => posición de contenedor. Inventario/mapa no matchean abajo.
+  if not toPos or toPos.x ~= 65535 then return nil end
+
+  local id = item:getId()
+  local itemPos = item:getPosition()
+  for _, container in pairs(g_game.getContainers()) do
+    local cap = container:getCapacity()
+    -- Identifica el contenedor destino por la 'y' del slot (id de contenedor codificado
+    -- por el motor); comparamos, no construimos la posición a mano.
+    if cap > 0 and container:getSlotPosition(0).y == toPos.y then
+      for slot = 0, cap - 1 do
+        local slotItem = container:getItem(slot)
+        if slotItem and slotItem:getId() == id and slotItem:getCount() < 100 then
+          local sp = container:getSlotPosition(slot)
+          -- No redirigir sobre el propio ítem de origen.
+          if not (itemPos.x == sp.x and itemPos.y == sp.y and itemPos.z == sp.z) then
+            return sp
+          end
+        end
+      end
+      return nil
+    end
+  end
+  return nil
+end
+
 function clean()
   for containerid,container in pairs(g_game.getContainers()) do
     destroy(container)
