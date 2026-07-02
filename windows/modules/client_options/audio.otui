@@ -1,0 +1,4 @@
+OptionPanel
+  OptionCheckBox
+    id: enableAudio
+    !text: tr('Enable audio')

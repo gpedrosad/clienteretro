@@ -1,0 +1,14 @@
+CLIENTE OFICIAL RETRO — macOS
+=============================
+
+Servidor: retro76.cl:7171 (Tibia 7.6)
+Solo servidor oficial (sin opción "Another").
+
+REQUISITOS:
+- XQuartz: https://www.xquartz.org/
+
+COMO JUGAR:
+1. Descomprimir toda la carpeta
+2. Doble clic en "Iniciar Cliente.command"
+3. Si macOS bloquea: clic derecho → Abrir
+4. Iniciar sesión con tu cuenta

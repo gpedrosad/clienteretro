@@ -1,0 +1,10 @@
+CLIENTE OFICIAL RETRO — Windows
+===============================
+
+Servidor: retro76.cl:7171 (Tibia 7.6)
+Solo servidor oficial (sin opción "Another").
+
+COMO JUGAR:
+1. Descomprimir toda la carpeta
+2. Doble clic en "Iniciar Cliente.bat"
+3. Iniciar sesión con tu cuenta
