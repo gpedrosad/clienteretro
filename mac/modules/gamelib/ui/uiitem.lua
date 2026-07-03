@@ -35,6 +35,14 @@ function UIItem:onDrop(widget, mousePos, forced)
 
   local toPos = self.position
 
+  -- Auto-apilado (QoL): si es un stackable soltado en un contenedor y ya hay un stack
+  -- parcial del mismo ítem, redirigimos el destino a ese slot para que el server los
+  -- fusione. El server sigue validando; si no aplica, findMergeSlotPosition devuelve nil.
+  if modules.game_containers then
+    local mergePos = modules.game_containers.findMergeSlotPosition(item, toPos)
+    if mergePos then toPos = mergePos end
+  end
+
   local itemPos = item:getPosition()
   if itemPos.x == toPos.x and itemPos.y == toPos.y and itemPos.z == toPos.z then return false end
 
