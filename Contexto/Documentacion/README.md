@@ -4,4 +4,6 @@ Carpeta para checklists de QA, planes de trabajo y documentación de features en
 
 Mantenida principalmente por `/qa` (checklists de aceptación) y `/arquitecto` (planes cross-módulo).
 
-_(placeholder inicial — agregar documentos a medida que se necesiten)_
+## Documentos
+
+- [cursor-crosshair-highlight.md](./cursor-crosshair-highlight.md) — cursor del sistema, crosshair en mapa, highlight bajo puntero y migración de settings v1.

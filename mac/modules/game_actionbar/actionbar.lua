@@ -1011,7 +1011,9 @@ function setupAction(widget)
       else 
         paramText = ""
       end
-      g_game.talk(widget.spellData.words..paramText)
+      local spellText = widget.spellData.words .. paramText
+      modules.game_console.registerPendingSpellMessage(spellText)
+      g_game.talk(spellText)
     end
   elseif widget.type == TYPE.ITEM then
     widget.callback = function()

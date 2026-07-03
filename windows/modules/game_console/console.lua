@@ -13,6 +13,7 @@ SpeakTypesSettings = {
   channelWhite = { speakType = MessageModes.ChannelManagement, color = '#FFFFFF' },
   channelRed = { speakType = MessageModes.GamemasterChannel, color = '#F55E5E' },
   channelOrange = { speakType = MessageModes.ChannelHighlight, color = '#F6A731' },
+  spellCast = { speakType = MessageModes.MonsterSay, color = '#F6A731', hideInConsole = true },
   monsterSay = { speakType = MessageModes.MonsterSay, color = '#FE6500', hideInConsole = true},
   monsterYell = { speakType = MessageModes.MonsterYell, color = '#FE6500', hideInConsole = true},
   rvrAnswerFrom = { speakType = MessageModes.RVRAnswer, color = '#FE6500' },
@@ -84,6 +85,55 @@ ignoredChannels = {}
 filters = {}
 
 floatingMode = false
+
+local PENDING_SPELL_TTL = 3000
+local pendingSpellMessages = {}
+
+local function normalizeSpellText(text)
+  if not text or text == '' then return '' end
+  text = text:lower():trim()
+  text = text:gsub('"[^"]*"', '')
+  text = text:gsub("'", '')
+  text = text:gsub('%s+', ' ')
+  return text:trim()
+end
+
+local function cleanExpiredPendingSpells()
+  local now = g_clock.millis()
+  for words, entry in pairs(pendingSpellMessages) do
+    if now - entry.time > PENDING_SPELL_TTL then
+      pendingSpellMessages[words] = nil
+    end
+  end
+end
+
+function registerPendingSpellMessage(message)
+  local words = normalizeSpellText(message)
+  if words == '' then return end
+  cleanExpiredPendingSpells()
+  pendingSpellMessages[words] = { time = g_clock.millis() }
+end
+
+local function isPendingSpellMessage(name, message)
+  if name ~= g_game.getCharacterName() then return false end
+  cleanExpiredPendingSpells()
+  local words = normalizeSpellText(message)
+  local entry = pendingSpellMessages[words]
+  if not entry then return false end
+  pendingSpellMessages[words] = nil
+  return true
+end
+
+local function isSpellMessage(name, mode, message)
+  if mode ~= MessageModes.Say then return false end
+  local words = normalizeSpellText(message)
+  if words == '' then return false end
+  if Spells.getSpellByWords(words) then return true end
+  if name == g_game.getCharacterName() then
+    return isPendingSpellMessage(name, message)
+  end
+  return false
+end
 
 local communicationSettings = {
   useIgnoreList = true,
@@ -953,6 +1003,10 @@ function sendMessage(message, tab)
       speaktypedesc = chatCommandSayMode or 'channelYellow'
     end
 
+    if speaktypedesc == 'say' and Spells.getSpellByWords(normalizeSpellText(message)) then
+      registerPendingSpellMessage(message)
+    end
+
     g_game.talkChannel(SpeakTypesSettings[speaktypedesc].speakType, channel, message)
     return
   else
@@ -1056,7 +1110,8 @@ function onTalk(name, level, mode, message, channelId, creaturePos)
 
   if ignoreNpcMessages and isNpcMode then return end
 
-  speaktype = SpeakTypes[mode]
+  local isSpell = isSpellMessage(name, mode, message)
+  speaktype = isSpell and SpeakTypesSettings.spellCast or SpeakTypes[mode]
 
   if not speaktype then
     perror('unhandled onTalk message mode ' .. mode .. ': ' .. message)
@@ -1096,6 +1151,12 @@ function onTalk(name, level, mode, message, channelId, creaturePos)
         staticText:addMessage(name, mode, staticMessage)
       end
       staticText:setColor(speaktype.color)
+    elseif isSpell then
+      staticText:addMessage(name, MessageModes.MonsterSay, staticMessage)
+      staticText:setColor(speaktype.color)
+    elseif mode == MessageModes.Say or mode == MessageModes.Whisper or mode == MessageModes.Yell then
+      staticText:addMessage(name, mode, staticMessage)
+      staticText:setColor(SpeakTypes[mode].color)
     else
       staticText:addMessage(name, mode, staticMessage)
     end
@@ -1504,6 +1565,7 @@ function offline()
     local gameRootPanel = modules.game_interface.getRootPanel()
     g_keyboard.unbindKeyDown('Ctrl+R', gameRootPanel)
   end
+  pendingSpellMessages = {}
   clear()
 end
 
