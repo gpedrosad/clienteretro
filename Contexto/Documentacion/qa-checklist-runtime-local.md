@@ -86,3 +86,4 @@
 | 2026-07-03 | Auto-stack v1 | Windows (local) | ✅ OK | Apila al mover stackables sobre stack existente |
 | 2026-07-03 | Texto naranja spells | Windows (local) | ⚠️ PARCIAL | Funciona, pero `SpellInfo` del cliente desincronizado con `spells.xml` 7.6 del server → sin naranja en: adori vita vis (Sudden Death), exevo mort hur (Energy Wave), adori, adori blank, adori gran, adori gran flam, death, utani slow. Ver MEMORY slug `client-spellinfo-desync-server76`. Fix `/datos`o`/lua`, paridad win/mac |
 | 2026-07-03 | Scroll hero id 1949 | Windows (local) | ℹ️ NO-CLIENTE | "you cannot use this object" = server (item sin flag readable/action). Contenido server, no bug cliente |
+| 2026-07-03 | Texto naranja — FIX | win+mac | ✅ OK | `SpellInfo` reconciliado: 6 words corregidos en `Default` + perfil `Retro76` con `adori blank`/`death`. `luac5.1 -p` OK, paridad OK. **Validado en runtime: los 8 en naranja sin chat.** Slug `client-spellinfo-fix-aplicado` |
