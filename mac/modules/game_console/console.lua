@@ -129,7 +129,10 @@ local function isSpellMessage(name, mode, message)
   local words = normalizeSpellText(message)
   if words == '' then return false end
   if Spells.getSpellByWords(words) then return true end
-  return isPendingSpellMessage(name, message)
+  if name == g_game.getCharacterName() then
+    return isPendingSpellMessage(name, message)
+  end
+  return false
 end
 
 local communicationSettings = {
@@ -1000,7 +1003,7 @@ function sendMessage(message, tab)
       speaktypedesc = chatCommandSayMode or 'channelYellow'
     end
 
-    if speaktypedesc == 'say' then
+    if speaktypedesc == 'say' and Spells.getSpellByWords(normalizeSpellText(message)) then
       registerPendingSpellMessage(message)
     end
 
@@ -1151,6 +1154,9 @@ function onTalk(name, level, mode, message, channelId, creaturePos)
     elseif isSpell then
       staticText:addMessage(name, MessageModes.MonsterSay, staticMessage)
       staticText:setColor(speaktype.color)
+    elseif mode == MessageModes.Say or mode == MessageModes.Whisper or mode == MessageModes.Yell then
+      staticText:addMessage(name, mode, staticMessage)
+      staticText:setColor(SpeakTypes[mode].color)
     else
       staticText:addMessage(name, mode, staticMessage)
     end

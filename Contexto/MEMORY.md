@@ -36,6 +36,7 @@
 --- Sesión cerrada: 2026-07-03 14:27 ---
 
 - [Lua][2026-07-03] **Texto flotante naranja para spells:** `game_console/console.lua` detecta casts vía `Spells.getSpellByWords` + `registerPendingSpellMessage` (TTL 3s) en say/action bar; `spellCast` usa `MessageModes.MonsterSay`, color `#F6A731`, `hideInConsole=true`. Action bar registra pending antes de `g_game.talk`. Paridad win/mac.
+- [Lua][2026-07-03] **Fix false positive spell:** no registrar pending en todo `say` — solo si `getSpellByWords` matchea; pending solo para jugador local. Say/whisper/yell normales mantienen amarillo en flotante y chat.
 
 --- Sesión cerrada: 2026-07-03 14:31 ---
 
@@ -48,3 +49,11 @@
 --- Sesión cerrada: 2026-07-03 14:40 ---
 
 --- Sesión cerrada: 2026-07-03 14:41 ---
+
+--- Sesión cerrada: 2026-07-03 14:42 ---
+
+--- Sesión cerrada: 2026-07-03 14:42 ---
+
+--- Sesión cerrada: 2026-07-03 14:49 ---
+
+--- Sesión cerrada: 2026-07-03 14:50 ---
