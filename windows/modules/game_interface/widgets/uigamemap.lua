@@ -26,7 +26,13 @@ function UIGameMap:markThing(thing, color)
   end
   
   self.markedThing = thing
-  if self.markedThing and g_settings.getBoolean('highlightThingsUnderCursor') then
+  local highlight = false
+  if modules.client_options and modules.client_options.getOption then
+    highlight = modules.client_options.getOption('highlightThingsUnderCursor')
+  else
+    highlight = g_settings.getBoolean('highlightThingsUnderCursor', false)
+  end
+  if self.markedThing and highlight then
     self.markedThing:setMarked(color)
   end
 end
@@ -85,6 +91,21 @@ end
 
 function UIGameMap:updateMarkedCreature()
   self.updateMarkedCreatureEvent = scheduleEvent(function() self:updateMarkedCreature() end, 100)
+
+  local highlight = false
+  if modules.client_options and modules.client_options.getOption then
+    highlight = modules.client_options.getOption('highlightThingsUnderCursor')
+  else
+    highlight = g_settings.getBoolean('highlightThingsUnderCursor', false)
+  end
+
+  if not highlight then
+    if self.markedThing then
+      self:markThing(nil)
+    end
+    return
+  end
+
   if self.mousePos and g_game.isOnline() then
     self.markingMouseRelease = true
     self:onMouseRelease(self.mousePos, MouseRightButton)

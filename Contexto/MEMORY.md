@@ -21,7 +21,26 @@
 ### QA Engineer
 - [QA][2026-07-01] **Auto-stack v1 + fixes de actionbar: validados en runtime (Windows) por el usuario — OK.** Se probó la build de `clienteretro/windows/` (rama `feat/autostack-y-fixes-actionbar` checked out). Falta validación runtime en **macOS** (paridad ya aplicada en código; requiere macOS + XQuartz). Criterios verificados: apilado al mover stackables a un contenedor con stack existente; diálogo de hotkey sobre botón sin configurar (OK/Clear) sin `attempt to index a nil value`.
 
+### UI / OTUI Engineer
+- [UI][2026-07-03] **Defaults Retro76 de puntero:** `crosshair = 1` (None) y `highlightThingsUnderCursor = false`. Migración v3 en `client_options/options.lua` — **bug v1/v2:** `g_settings:exists()` no existe en el singleton (solo en `g_configs.getSettings()`), la migración subía `optionsSettingsVersion` sin cambiar valores. v3 usa `getNumber`/`getBoolean` directo. `uigamemap.lua` no ejecuta `updateMarkedCreature` si highlight está off.
+
 ### Pendientes / Próximos pasos (para esta sesión)
 - [Estado][2026-07-01] **1) Push + PR:** subir `feat/autostack-y-fixes-actionbar` a `origin` y abrir PR contra `main` (los 3 commits ya están; requiere OK del usuario para el push — ningún agente pushea solo).
 - [Estado][2026-07-01] **2) Commitear el scaffolding del equipo:** `CLAUDE.md`, `agents.md`, `Contexto/`, `.claude/` quedaron untracked (se crearon estando en la rama feature). Idealmente commitearlos en `main` (son infraestructura del equipo, no parte del feature). Sugerido: `git switch main` → add → commit `chore: scaffolding del equipo de agentes`.
 - [Estado][2026-07-01] **3) Server-side (otro repo, YurOTS):** el apilado de ítems CREADOS por el server (exevo pan, loot) NO va en el cliente. Causa raíz ya localizada: `Player::addItem` no fusiona stacks (`source/player.cpp:810`, `container.cpp:47`). Fix = agregar merge-con-stack-existente antes de `getFreeSlot`. Ojo con el contrato `stackable` .dat↔.otb si la comida hoy no es stackable.
+
+--- Sesión cerrada: 2026-07-03 14:24 ---
+
+--- Sesión cerrada: 2026-07-03 14:26 ---
+
+--- Sesión cerrada: 2026-07-03 14:27 ---
+
+- [Lua][2026-07-03] **Texto flotante naranja para spells:** `game_console/console.lua` detecta casts vía `Spells.getSpellByWords` + `registerPendingSpellMessage` (TTL 3s) en say/action bar; `spellCast` usa `MessageModes.MonsterSay`, color `#F6A731`, `hideInConsole=true`. Action bar registra pending antes de `g_game.talk`. Paridad win/mac.
+
+--- Sesión cerrada: 2026-07-03 14:31 ---
+
+--- Sesión cerrada: 2026-07-03 14:35 ---
+
+--- Sesión cerrada: 2026-07-03 14:35 ---
+
+--- Sesión cerrada: 2026-07-03 14:40 ---

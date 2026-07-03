@@ -1,3 +1,30 @@
+local OPTIONS_SETTINGS_VERSION = 3
+
+-- Convierte valores stock OTClient (crosshair Default, highlight on) a defaults Retro76.
+-- Nota: g_settings (singleton) no expone :exists(); usar get/getBoolean con default.
+local function migrateStockPointerDefaults()
+  if g_settings.getNumber('crosshair', 1) == 2 then
+    g_settings.set('crosshair', 1)
+  end
+  if g_settings.getBoolean('highlightThingsUnderCursor', false) then
+    g_settings.set('highlightThingsUnderCursor', false)
+  end
+end
+
+-- Migraciones one-shot de opciones persistidas en disco.
+local function migrateOptionsSettings()
+  local version = g_settings.getNumber('optionsSettingsVersion', 0)
+  if version >= OPTIONS_SETTINGS_VERSION then
+    return
+  end
+
+  if version < 3 then
+    migrateStockPointerDefaults()
+  end
+
+  g_settings.set('optionsSettingsVersion', OPTIONS_SETTINGS_VERSION)
+end
+
 local defaultOptions = {
   layout = DEFAULT_LAYOUT, -- set in init.lua
   vsync = true,
@@ -27,7 +54,7 @@ local defaultOptions = {
   botSoundVolume = 100,
   enableLights = false,
   floorFading = 500,
-  crosshair = 2,
+  crosshair = 1,
   ambientLight = 100,
   optimizationLevel = 1,
   displayNames = true,
@@ -36,7 +63,7 @@ local defaultOptions = {
   displayHealthOnTop = false,
   showHealthManaCircle = false,
   hidePlayerBars = false,
-  highlightThingsUnderCursor = true,
+  highlightThingsUnderCursor = false,
   topHealtManaBar = true,
   displayText = true,
   dontStretchShrink = false,
@@ -84,6 +111,8 @@ local extrasPanel
 local audioButton
 
 function init()
+  migrateOptionsSettings()
+
   for k,v in pairs(defaultOptions) do
     g_settings.setDefault(k, v)
     options[k] = v
@@ -150,11 +179,11 @@ function setup()
   -- load options
   for k,v in pairs(defaultOptions) do
     if type(v) == 'boolean' then
-      setOption(k, g_settings.getBoolean(k), true)
+      setOption(k, g_settings.getBoolean(k, v), true)
     elseif type(v) == 'number' then
-      setOption(k, g_settings.getNumber(k), true)
+      setOption(k, g_settings.getNumber(k, v), true)
     elseif type(v) == 'string' then
-      setOption(k, g_settings.getString(k), true)
+      setOption(k, g_settings.getString(k, v), true)
     end
   end
   
@@ -173,6 +202,13 @@ function setup()
   setOption('enableAudio', false, true)
   if g_sounds ~= nil then
     g_sounds.setAudioEnabled(false)
+  end
+
+  if not getOption('highlightThingsUnderCursor') and modules.game_interface then
+    local mapPanel = modules.game_interface.getMapPanel()
+    if mapPanel and mapPanel.markedThing then
+      mapPanel:markThing(nil)
+    end
   end
 end
 
@@ -297,6 +333,10 @@ function setOption(key, value, force)
       gameMapPanel:setCrosshair("/images/crosshair/default.png")        
     elseif value == 3 then
       gameMapPanel:setCrosshair("/images/crosshair/full.png")    
+    end
+  elseif key == 'highlightThingsUnderCursor' then
+    if not value and gameMapPanel.markedThing then
+      gameMapPanel:markThing(nil)
     end
   elseif key == 'ambientLight' then
     graphicsPanel:getChildById('ambientLightLabel'):setText(tr('Ambient light: %s%%', value))
