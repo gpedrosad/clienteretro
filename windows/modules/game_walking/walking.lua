@@ -140,11 +140,24 @@ function disableWSAD()
   unbindWalkKey("Z")
 end
 
+-- En Mac, macOS se queda con Ctrl+flechas (Mission Control y cambio de escritorio) y nunca llegan al
+-- cliente. Ahi se gira con Cmd+flechas. Cmd llega como la tecla Meta, que no es un modificador: la flecha
+-- entra como tecla de caminar y aca se desvia a girar.
+function cmdTurn(dir, repeated)
+  if dir > West or g_app.getOs() == 'windows' or not g_window.isKeyPressed(KeyMeta) then
+    return false
+  end
+  if g_game.getLocalPlayer() then
+    turn(dir, repeated)
+  end
+  return true
+end
+
 function bindWalkKey(key, dir)
   local gameRootPanel = modules.game_interface.getRootPanel()
-  g_keyboard.bindKeyDown(key, function() changeWalkDir(dir) end, gameRootPanel, true)
+  g_keyboard.bindKeyDown(key, function() if not cmdTurn(dir, false) then changeWalkDir(dir) end end, gameRootPanel, true)
   g_keyboard.bindKeyUp(key, function() changeWalkDir(dir, true) end, gameRootPanel, true)
-  g_keyboard.bindKeyPress(key, function(c, k, ticks) smartWalk(dir, ticks) end, gameRootPanel)
+  g_keyboard.bindKeyPress(key, function(c, k, ticks) if not cmdTurn(dir, true) then smartWalk(dir, ticks) end end, gameRootPanel)
 end
 
 function unbindWalkKey(key)

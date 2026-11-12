@@ -12,6 +12,10 @@ COMO JUGAR:
 3. Si macOS bloquea: clic derecho → Abrir
 4. Iniciar sesión con tu cuenta
 
+GIRAR SIN CAMINAR:
+Cmd + flechas. (Ctrl + flechas no sirve en Mac: macOS las usa para Mission
+Control y cambiar de escritorio.)
+
 ACTUALIZACIONES:
 El cliente se actualiza solo cada vez que se abre: baja los sprites y archivos
 nuevos y sigue. No hace falta volver a descargarlo.
