@@ -55,6 +55,7 @@ function init()
     onBlessingsChange = onBlessingsChange
   })
   connect(g_game, { onGameStart = refresh })
+  connect(g_game, { onTextMessage = onAttackSpeedMessage })
 
   g_keyboard.bindKeyDown('Ctrl+I', toggle)
 
@@ -142,6 +143,8 @@ function terminate()
     onBlessingsChange = onBlessingsChange
   })
   disconnect(g_game, { onGameStart = refresh })
+  disconnect(g_game, { onTextMessage = onAttackSpeedMessage })
+  stopAttackSpeedIcon()
 
   g_keyboard.unbindKeyDown('Ctrl+I')
 
@@ -483,5 +486,57 @@ function onStatesChange(localPlayer, now, old)
     if bitChanged ~= 0 then
       toggleIcon(bitChanged)
     end
+  end
+end
+
+-- [Retro76] Frenzy (utito hur, knight) / Rapid Fire (utito san hur, paladin): ataques mas rapidos unos
+-- segundos. El byte de estados del 7.6 no tiene un bit libre, asi que el icono lo prende el mensaje del
+-- server ("Your attacks speed up for N s.") y lo apaga "Your attacks slow down." o la cuenta a 0.
+-- Server: serverrepo docs/gameplay/SPELL_ATTACK_SPEED.md.
+local ATTACK_SPEED_ICON = 'condition_attack_speed'
+local attackSpeedEvent = nil
+local attackSpeedLeft = 0
+
+function stopAttackSpeedIcon()
+  if attackSpeedEvent then
+    removeEvent(attackSpeedEvent)
+    attackSpeedEvent = nil
+  end
+  attackSpeedLeft = 0
+  local icon = conditionPanel and conditionPanel:getChildById(ATTACK_SPEED_ICON)
+  if icon then
+    icon:destroy()
+  end
+end
+
+local function tickAttackSpeedIcon()
+  attackSpeedEvent = nil
+  local icon = conditionPanel and conditionPanel:getChildById(ATTACK_SPEED_ICON)
+  if not icon or attackSpeedLeft <= 0 then
+    stopAttackSpeedIcon()
+    return
+  end
+  icon:setTooltip(tr('Your attacks are faster') .. ' (' .. attackSpeedLeft .. ' s)')
+  attackSpeedLeft = attackSpeedLeft - 1
+  attackSpeedEvent = scheduleEvent(tickAttackSpeedIcon, 1000)
+end
+
+function startAttackSpeedIcon(seconds)
+  stopAttackSpeedIcon()
+  if not conditionPanel then return end
+  local icon = g_ui.createWidget('ConditionWidget', conditionPanel)
+  icon:setId(ATTACK_SPEED_ICON)
+  icon:setImageSource('/images/game/states/strengthened')
+  attackSpeedLeft = seconds
+  tickAttackSpeedIcon()
+end
+
+function onAttackSpeedMessage(mode, text)
+  if type(text) ~= 'string' then return end
+  local seconds = text:match('^Your attacks speed up for (%d+) s%.$')
+  if seconds then
+    startAttackSpeedIcon(tonumber(seconds))
+  elseif text == 'Your attacks slow down.' then
+    stopAttackSpeedIcon()
   end
 end

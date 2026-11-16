@@ -163,6 +163,8 @@ SpellInfo = {
   ['Retro76'] = {
     ['Blank'] =                    {id = 2001, words = 'adori blank',          exhaustion = 2000,  premium = false, type = 'Conjure', icon = 'retro_blank',           mana = 60,     level = 3,  soul = 0, group = {[3] = 2000},               vocations = {1, 2, 3, 5, 6, 7}},
     ['Death Spell'] =              {id = 2002, words = 'death',                exhaustion = 2000,  premium = false, type = 'Instant', icon = 'retro_death',           mana = 1,      level = 1,  soul = 0, group = {[1] = 2000},               vocations = {1, 2, 3, 4, 5, 6, 7, 8}},
+    ['Frenzy'] =                   {id = 2003, words = 'utito hur',            exhaustion = 2000,  premium = false, type = 'Instant', icon = 'retro_frenzy',          mana = 100,    level = 1,  soul = 0, group = {[3] = 2000},               vocations = {4, 8}},
+    ['Rapid Fire'] =               {id = 2004, words = 'utito san hur',        exhaustion = 2000,  premium = false, type = 'Instant', icon = 'retro_rapidfire',       mana = 120,    level = 1,  soul = 0, group = {[3] = 2000},               vocations = {3, 7}},
   }--[[,
 
   ['Sample'] = {
