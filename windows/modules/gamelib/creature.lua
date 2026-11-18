@@ -9,6 +9,7 @@ SkullWhite = 3
 SkullRed = 4
 SkullBlack = 5
 SkullOrange = 6
+SkullPink = 7 -- [Retro76] castigo de GM (/pink): al morir se pierde todo
 
 ShieldNone = 0
 ShieldWhiteYellow = 1
@@ -62,6 +63,8 @@ function getSkullImagePath(skullId)
     path = '/images/game/skulls/skull_black'
   elseif skullId == SkullOrange then
     path = '/images/game/skulls/skull_orange'
+  elseif skullId == SkullPink then
+    path = '/images/game/skulls/skull_pink'
   end
   return path
 end
