@@ -489,83 +489,134 @@ function onStatesChange(localPlayer, now, old)
   end
 end
 
--- [Retro76] Iconos con cuenta regresiva para los hechizos que duran unos segundos: Frenzy / Rapid Fire
--- (utito hur / utito san hur), Counter Stance (utito tera), Blood Ritual (utamo mort), Seed of Life (exura tera,
--- en quien la recibe) y Rescue (exeta sio). El byte de estados del 7.6 no tiene bits libres, asi que cada icono
--- lo prende un mensaje del server con los segundos ("... for N s.") y lo apaga otro mensaje o la cuenta a 0.
--- Los segundos que quedan se ven sobre el icono. No cambiar estos textos sin cambiar el server
--- (serverrepo: docs/gameplay/SPELL_ATTACK_SPEED.md y docs/gameplay/SPELLS_FEEDBACK.md).
+-- [Retro76] Iconos de los hechizos en el panel de condiciones. El byte de estados del 7.6 no tiene bits
+-- libres, asi que los maneja el texto que manda el server:
+--   "<Hechizo>: ready again in N s."  -> el icono queda APAGADO con la cuenta hasta poder relanzarlo
+--   "... for N s." / "... in N s."    -> mientras dura el efecto, ENCENDIDO con los segundos del efecto
+--   mensaje de fin                    -> se termina el efecto (queda apagado si falta para relanzarlo)
+-- No cambiar estos textos sin cambiar el server (serverrepo: docs/gameplay/SPELLS_FEEDBACK.md y
+-- docs/gameplay/SPELL_ATTACK_SPEED.md).
 local TimedIcons = {
-  { id = 'condition_attack_speed', path = '/images/game/states/strengthened', tooltip = tr('Your attacks are faster'),
+  { id = 'condition_attack_speed', path = '/images/game/states/strengthened', names = { 'Frenzy', 'Rapid Fire' },
+    tooltip = tr('Your attacks are faster'),
     start = '^Your attacks speed up for (%d+) s%.$', stop = { 'Your attacks slow down.' } },
-  { id = 'condition_counter_stance', path = '/images/game/states/counter_stance', tooltip = tr('Counter stance: the next hits deal less damage'),
+  { id = 'condition_counter_stance', path = '/images/game/states/counter_stance', names = { 'Counter Stance' },
+    tooltip = tr('Counter stance: the next hits deal less damage'),
     start = '^You take a counter stance for (%d+) s', stop = { 'Your counter stance ends.' } },
-  { id = 'condition_blood_ritual', path = '/images/game/states/blood_ritual', tooltip = tr('Blood ritual: your health turns into mana'),
+  { id = 'condition_blood_ritual', path = '/images/game/states/blood_ritual', names = { 'Blood Ritual' },
+    tooltip = tr('Blood ritual: your health turns into mana'),
     start = '^Your blood turns into mana for (%d+) s', stop = { 'Your blood ritual ends.' } },
-  { id = 'condition_seed_of_life', path = '/images/game/states/seed_of_life', tooltip = tr('A seed of life will bloom on you'),
+  { id = 'condition_seed_of_life', path = '/images/game/states/seed_of_life', names = { 'Seed of Life' },
+    tooltip = tr('A seed of life will bloom on you'),
     start = '^A seed of life will bloom on you in (%d+) s', stop = { 'The seed of life blooms.', 'The seed of life withers.' } },
-  { id = 'condition_rescue', path = '/images/game/states/rescue', tooltip = tr('Monsters attack you instead of your ally'),
+  { id = 'condition_rescue', path = '/images/game/states/rescue', names = { 'Rescue' },
+    tooltip = tr('Monsters attack you instead of your ally'),
     start = '^You draw %d+ monsters? away from .- for (%d+) s', stop = { 'Your rescue ends.' } },
+  { id = 'condition_piercing_volley', path = '/images/game/states/piercing_volley', names = { 'Piercing Volley' } },
+  { id = 'condition_cleanse', path = '/images/game/states/cleanse', names = { 'Cleanse' } },
+  { id = 'condition_chain_lightning', path = '/images/game/states/chain_lightning', names = { 'Chain Lightning' } },
+  { id = 'condition_field_detonation', path = '/images/game/states/field_detonation', names = { 'Field Detonation' } },
 }
-local timedLeft = {}
+local timedByName = {}
+for _, def in ipairs(TimedIcons) do
+  for _, name in ipairs(def.names) do
+    timedByName[name:lower()] = def
+  end
+end
+local timedState = {}   -- id -> { active = segundos del efecto, ready = segundos para relanzar, name = hechizo }
 local timedEvents = {}
 
-local function stopTimedIcon(def)
+local function removeTimedIcon(def)
   if timedEvents[def.id] then
     removeEvent(timedEvents[def.id])
     timedEvents[def.id] = nil
   end
-  timedLeft[def.id] = nil
+  timedState[def.id] = nil
   local icon = conditionPanel and conditionPanel:getChildById(def.id)
   if icon then
     icon:destroy()
   end
 end
 
-local function tickTimedIcon(def)
-  timedEvents[def.id] = nil
-  local icon = conditionPanel and conditionPanel:getChildById(def.id)
-  local left = timedLeft[def.id] or 0
-  if not icon or left <= 0 then
-    stopTimedIcon(def)
-    return
+local function drawTimedIcon(def)
+  local st = timedState[def.id]
+  if not conditionPanel or not st or (st.active <= 0 and st.ready <= 0) then
+    removeTimedIcon(def)
+    return false
   end
-  icon:setText(tostring(left))
-  icon:setTooltip(def.tooltip .. ' (' .. left .. ' s)')
-  timedLeft[def.id] = left - 1
-  timedEvents[def.id] = scheduleEvent(function() tickTimedIcon(def) end, 1000)
+  local icon = conditionPanel:getChildById(def.id)
+  if not icon then
+    icon = g_ui.createWidget('ConditionWidget', conditionPanel)
+    icon:setId(def.id)
+    icon:setImageSource(def.path)
+    icon:setFont('verdana-11px-rounded')
+    icon:setTextAlign(AlignBottomRight)
+  end
+  if st.active > 0 then
+    icon:setOpacity(1.0)
+    icon:setColor('#ffffff')
+    icon:setText(tostring(st.active))
+    icon:setTooltip((def.tooltip or st.name or '') .. ' (' .. st.active .. ' s)')
+  else
+    icon:setOpacity(0.5)
+    icon:setColor('#c0c0c0')
+    icon:setText(tostring(st.ready))
+    icon:setTooltip((st.name or '') .. ': ' .. tr('ready again in') .. ' ' .. st.ready .. ' s')
+  end
+  return true
 end
 
-local function startTimedIcon(def, seconds)
-  stopTimedIcon(def)
-  if not conditionPanel then return end
-  local icon = g_ui.createWidget('ConditionWidget', conditionPanel)
-  icon:setId(def.id)
-  icon:setImageSource(def.path)
-  icon:setFont('verdana-11px-rounded')
-  icon:setColor('#ffffff')
-  icon:setTextAlign(AlignBottomRight)
-  timedLeft[def.id] = seconds
+local function tickTimedIcon(def)
+  timedEvents[def.id] = nil
+  if not drawTimedIcon(def) then return end
+  timedEvents[def.id] = scheduleEvent(function()
+    local s = timedState[def.id]
+    if s then
+      s.active = s.active - 1
+      s.ready = s.ready - 1
+    end
+    tickTimedIcon(def)
+  end, 1000)
+end
+
+local function updateTimedIcon(def, active, ready, name)
+  local st = timedState[def.id] or { active = 0, ready = 0 }
+  if active then st.active = active end
+  if ready then st.ready = ready end
+  if name then st.name = name end
+  timedState[def.id] = st
+  if timedEvents[def.id] then
+    removeEvent(timedEvents[def.id])
+    timedEvents[def.id] = nil
+  end
   tickTimedIcon(def)
 end
 
 function stopTimedIcons()
   for _, def in ipairs(TimedIcons) do
-    stopTimedIcon(def)
+    removeTimedIcon(def)
   end
 end
 
 function onTimedIconMessage(mode, text)
   if type(text) ~= 'string' then return end
+  local name, ready = text:match('^(.-): ready again in (%d+) s%.$')
+  local def = name and timedByName[name:lower()]
+  if def then
+    updateTimedIcon(def, nil, tonumber(ready), name)
+    return
+  end
   for _, def in ipairs(TimedIcons) do
-    local seconds = text:match(def.start)
+    local seconds = def.start and text:match(def.start)
     if seconds then
-      startTimedIcon(def, tonumber(seconds))
+      updateTimedIcon(def, tonumber(seconds), nil, nil)
       return
     end
-    for _, stopText in ipairs(def.stop) do
+    for _, stopText in ipairs(def.stop or {}) do
       if text == stopText then
-        stopTimedIcon(def)
+        if timedState[def.id] then
+          updateTimedIcon(def, 0, nil, nil)
+        end
         return
       end
     end
