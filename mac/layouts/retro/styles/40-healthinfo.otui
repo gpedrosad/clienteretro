@@ -140,7 +140,9 @@ HealthInfoWindow < HeadlessMiniWindow
     Panel
       id: conditionPanel
       layout:
-        type: horizontalBox
+        type: grid
+        cell-size: 20 18
+        num-columns: 8
       height: 22
       margin-top: 4
       padding: 2

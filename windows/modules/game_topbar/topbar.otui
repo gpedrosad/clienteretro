@@ -30,7 +30,9 @@ StatsPanel < Panel
       image-source: /images/ui/dark_background
       anchors.fill: parent
       layout:
-        type: horizontalBox
+        type: grid
+        cell-size: 20 18
+        num-columns: 7
 
 SkillPanel < Panel
   height: 19

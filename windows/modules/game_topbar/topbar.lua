@@ -146,10 +146,29 @@ function setupTopBar()
     manaBar = topBar.stats.mana
     healthBar = topBar.stats.health
     states = topBar.stats.states.box
+    states.onLayoutUpdate = updateStatesLayout
+    topBar.stats.onGeometryChange = updateStatesLayout
+    updateStatesLayout()
 
     topBar.onMouseRelease = function(widget, mousePos, mouseButton)
         menu(mouseButton)
     end
+end
+
+-- Dejar espacio para vida/maná y agregar filas cuando se juntan condiciones y recargas.
+function updateStatesLayout()
+    if not states then return end
+    local frame = states:getParent()
+    local available = math.max(22, math.floor(topBar.stats:getWidth() * 0.55))
+    local width = math.min(available, math.max(150, states:getChildCount() * 20 + 2))
+    local columns = math.max(1, math.floor((width - 2) / 20))
+    local height = math.max(1, math.ceil(states:getChildCount() / columns)) * 18 + 2
+    if states:getLayout():getNumColumns() ~= columns then
+        states:getLayout():setNumColumns(columns)
+    end
+    if frame:getWidth() ~= width then frame:setWidth(width) end
+    if frame:getHeight() ~= height then frame:setHeight(height) end
+    if topBar.stats:getHeight() ~= height + 1 then topBar.stats:setHeight(height + 1) end
 end
 
 function refresh(profileChange)

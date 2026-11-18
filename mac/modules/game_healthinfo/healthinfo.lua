@@ -93,6 +93,11 @@ function init()
   hideExperience()
 
   healthInfoWindow:setup()
+  connect(healthInfoWindow, { onMaximize = updateConditionLayout })
+  local conditions = healthInfoWindow:recursiveGetChildById('conditionPanel')
+  conditions.onLayoutUpdate = updateConditionLayout
+  conditions.onGeometryChange = updateConditionLayout
+  updateConditionLayout()
   
   if g_app.isMobile() then
     healthInfoWindow:close()
@@ -111,6 +116,7 @@ function terminate()
   disconnect(g_game, { onGameEnd = offline })
   disconnect(overlay, { onGeometryChange = onOverlayGeometryChange })
   
+  disconnect(healthInfoWindow, { onMaximize = updateConditionLayout })
   healthInfoWindow:destroy()
   if healthInfoButton then
     healthInfoButton:destroy()
@@ -243,12 +249,25 @@ end
 
 -- personalization functions
 function hideLabels()
-  local content = healthInfoWindow:recursiveGetChildById('conditionPanel')
-  local removeHeight = math.max(capLabel:getMarginRect().height, soulLabel:getMarginRect().height) + content:getMarginRect().height - 3
+  local removeHeight = math.max(capLabel:getMarginRect().height, soulLabel:getMarginRect().height) - 3
   capLabel:setOn(false)
   soulLabel:setOn(false)
-  content:setVisible(false)
   healthInfoWindow:setHeight(math.max(healthInfoWindow.minimizedHeight, healthInfoWindow:getHeight() - removeHeight))
+end
+
+function updateConditionLayout()
+  if healthInfoWindow:isOn() then return end
+  local content = healthInfoWindow:recursiveGetChildById('conditionPanel')
+  local columns = math.max(1, math.floor((content:getWidth() - 4) / 20))
+  local height = math.max(1, math.ceil(content:getChildCount() / columns)) * 18 + 4
+  if content:getLayout():getNumColumns() ~= columns then
+    content:getLayout():setNumColumns(columns)
+  end
+  local delta = height - content:getHeight()
+  if delta ~= 0 then
+    content:setHeight(height)
+    healthInfoWindow:setHeight(healthInfoWindow:getHeight() + delta)
+  end
 end
 
 function hideExperience()

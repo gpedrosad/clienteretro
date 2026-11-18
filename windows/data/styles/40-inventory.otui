@@ -211,7 +211,9 @@ InventoryWindow < MiniWindow
       Panel
         id: conditionPanel
         layout:
-          type: horizontalBox
+          type: grid
+          cell-size: 20 18
+          num-columns: 5
         height: 22
         padding: 2
         anchors.top: slot8.bottom

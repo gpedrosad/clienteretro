@@ -139,6 +139,10 @@ function init()
   
   refresh()
   inventoryWindow:setup()
+  connect(inventoryWindow, { onMaximize = updateConditionLayout })
+  conditionPanel.onLayoutUpdate = updateConditionLayout
+  conditionPanel.onGeometryChange = updateConditionLayout
+  updateConditionLayout()
 end
 
 function terminate()
@@ -180,6 +184,7 @@ function terminate()
                          onFreeCapacityChange = onFreeCapacityChange })
   -- status end
 
+  disconnect(inventoryWindow, { onMaximize = updateConditionLayout })
   inventoryWindow:destroy()
   if inventoryButton then
     inventoryButton:destroy()
@@ -209,6 +214,7 @@ function refresh()
     onSoulChange(player, player:getSoul())
     onFreeCapacityChange(player, player:getFreeCapacity())
     onStatesChange(player, player:getStates(), 0)
+    refreshNativeSpellIcons(player)
   end
 
   purseButton:setVisible(g_game.getFeature(GamePurseSlot))
@@ -424,6 +430,7 @@ function onMountButtonClick(self, mousePos)
 end
 
 function onOutfitChange(localPlayer, outfit, oldOutfit)
+  refreshNativeSpellIcons(localPlayer)
   if outfit.mount == oldOutfit.mount then
     return
   end
@@ -446,6 +453,20 @@ function getPVPBoxByMode(mode)
 end
 
 -- status
+function updateConditionLayout()
+  if not conditionPanel or inventoryWindow:isOn() then return end
+  local columns = math.max(1, math.floor((conditionPanel:getWidth() - 4) / 20))
+  local height = math.max(1, math.ceil(conditionPanel:getChildCount() / columns)) * 18 + 4
+  if conditionPanel:getLayout():getNumColumns() ~= columns then
+    conditionPanel:getLayout():setNumColumns(columns)
+  end
+  local delta = height - conditionPanel:getHeight()
+  if delta ~= 0 then
+    conditionPanel:setHeight(height)
+    inventoryWindow:setHeight(inventoryWindow:getHeight() + delta)
+  end
+end
+
 function toggleIcon(bitChanged)
   local icon = conditionPanel:getChildById(Icons[bitChanged].id)
   if icon then
@@ -505,6 +526,9 @@ end
 -- No cambiar estos textos sin cambiar el server (serverrepo: docs/gameplay/SPELLS_FEEDBACK.md y
 -- docs/gameplay/SPELL_ATTACK_SPEED.md).
 local TimedIcons = {
+  { id = 'condition_invisible', path = '/images/game/spells/defaultspells',
+    clip = Spells.getImageClip(SpellIcons.invisible[1], 'Default'), names = {},
+    tooltip = tr('You are invisible'), native = function(player) return player:isInvisible() end },
   { id = 'condition_skill_buff', path = '/images/game/states/skill_buff', names = { 'Skill Buff', 'Sharpshooter' },
     tooltip = tr('Your skills are raised'),
     start = '^Your skills rise by %d+ for (%d+) s%.$', stop = { 'Your skills return to normal.' } },
@@ -520,7 +544,9 @@ local TimedIcons = {
   { id = 'condition_blood_ritual', path = '/images/game/states/blood_ritual', names = { 'Blood Ritual' },
     tooltip = tr('Your health is turning into mana'),
     start = '^Your blood turns into mana for (%d+) s', stop = { 'Your blood ritual ends.' } },
-  { id = 'condition_seed_of_life', path = '/images/game/states/seed_of_life', names = { 'Seed of Life' },
+  -- Recibir una semilla no pone en recarga tu propio hechizo (puede venir de otro druida).
+  { id = 'condition_seed_of_life_cooldown', path = '/images/game/states/seed_of_life', names = { 'Seed of Life' } },
+  { id = 'condition_seed_of_life', path = '/images/game/states/seed_of_life', names = {}, stacked = true,
     tooltip = tr('A seed of life will bloom on you'),
     start = '^A seed of life will bloom on you in (%d+) s', stop = { 'The seed of life blooms.', 'The seed of life withers.' } },
   { id = 'condition_rescue', path = '/images/game/states/rescue', names = { 'Rescue' },
@@ -551,7 +577,7 @@ local function timedPanels()
   return list
 end
 
-local timedState = {}   -- id -> { active = segundos del efecto, ready = segundos para relanzar, name = hechizo }
+local timedState = {}   -- id -> { activeUntil, readyAt, native, name }; horas locales en ms
 local timedEvents = {}
 
 local function removeTimedIcon(def)
@@ -570,7 +596,10 @@ end
 
 local function drawTimedIcon(def)
   local st = timedState[def.id]
-  if not st or (st.active <= 0 and st.ready <= 0) then
+  local now = g_clock.millis()
+  local active = st and math.max(0, math.ceil((st.activeUntil - now) / 1000)) or 0
+  local ready = st and math.max(0, math.ceil((st.readyAt - now) / 1000)) or 0
+  if not st or (not st.native and active <= 0 and ready <= 0) then
     removeTimedIcon(def)
     return false
   end
@@ -580,19 +609,23 @@ local function drawTimedIcon(def)
       icon = g_ui.createWidget('ConditionWidget', panel)
       icon:setId(def.id)
       icon:setImageSource(def.path)
+      if def.clip then icon:setImageClip(def.clip) end
       icon:setFont('verdana-11px-rounded')
       icon:setTextAlign(AlignBottomRight)
     end
-    if st.active > 0 then
+    if st.native then
+      icon:setText('')
+      icon:setTooltip(def.tooltip)
+    elseif active > 0 then
       icon:setOpacity(1.0)
       icon:setColor('#ffffff')
-      icon:setText(tostring(st.active))
-      icon:setTooltip((def.tooltip or st.name or '') .. ' (' .. st.active .. ' s)')
+      icon:setText(tostring(active))
+      icon:setTooltip((def.tooltip or st.name or '') .. ' (' .. active .. ' s)')
     else
       icon:setOpacity(0.5)
       icon:setColor('#c0c0c0')
-      icon:setText(tostring(st.ready))
-      icon:setTooltip((st.name or '') .. ': ' .. tr('ready again in') .. ' ' .. st.ready .. ' s')
+      icon:setText(tostring(ready))
+      icon:setTooltip((st.name or '') .. ': ' .. tr('ready again in') .. ' ' .. ready .. ' s')
     end
   end
   return true
@@ -602,19 +635,24 @@ local function tickTimedIcon(def)
   timedEvents[def.id] = nil
   if not drawTimedIcon(def) then return end
   timedEvents[def.id] = scheduleEvent(function()
-    local s = timedState[def.id]
-    if s then
-      s.active = s.active - 1
-      s.ready = s.ready - 1
-    end
     tickTimedIcon(def)
   end, 1000)
 end
 
 local function updateTimedIcon(def, active, ready, name)
-  local st = timedState[def.id] or { active = 0, ready = 0 }
-  if active then st.active = active end
-  if ready then st.ready = ready end
+  local st = timedState[def.id] or { activeUntil = 0, readyAt = 0 }
+  local now = g_clock.millis()
+  if active then
+    -- Varias semillas pueden estar pendientes a la vez; florecer una no termina las demás.
+    if def.stacked and active > 0 then
+      st.pending = (st.pending or 0) + 1
+    elseif def.stacked and active == 0 and (st.pending or 0) > 1 then
+      st.pending = st.pending - 1
+      active = nil
+    end
+    if active then st.activeUntil = now + active * 1000 end
+  end
+  if ready then st.readyAt = now + ready * 1000 end
   if name then st.name = name end
   timedState[def.id] = st
   if timedEvents[def.id] then
@@ -622,6 +660,19 @@ local function updateTimedIcon(def, active, ready, name)
     timedEvents[def.id] = nil
   end
   tickTimedIcon(def)
+end
+
+function refreshNativeSpellIcons(player)
+  for _, def in ipairs(TimedIcons) do
+    if def.native then
+      if player and def.native(player) then
+        timedState[def.id] = { activeUntil = 0, readyAt = 0, native = true }
+        if not timedEvents[def.id] then tickTimedIcon(def) end
+      else
+        removeTimedIcon(def)
+      end
+    end
+  end
 end
 
 function stopTimedIcons()
