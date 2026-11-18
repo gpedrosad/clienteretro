@@ -55,7 +55,7 @@ function init()
     onBlessingsChange = onBlessingsChange
   })
   connect(g_game, { onGameStart = refresh })
-  connect(g_game, { onTextMessage = onAttackSpeedMessage })
+  connect(g_game, { onTextMessage = onTimedIconMessage })
 
   g_keyboard.bindKeyDown('Ctrl+I', toggle)
 
@@ -143,8 +143,8 @@ function terminate()
     onBlessingsChange = onBlessingsChange
   })
   disconnect(g_game, { onGameStart = refresh })
-  disconnect(g_game, { onTextMessage = onAttackSpeedMessage })
-  stopAttackSpeedIcon()
+  disconnect(g_game, { onTextMessage = onTimedIconMessage })
+  stopTimedIcons()
 
   g_keyboard.unbindKeyDown('Ctrl+I')
 
@@ -489,54 +489,85 @@ function onStatesChange(localPlayer, now, old)
   end
 end
 
--- [Retro76] Frenzy (utito hur, knight) / Rapid Fire (utito san hur, paladin): ataques mas rapidos unos
--- segundos. El byte de estados del 7.6 no tiene un bit libre, asi que el icono lo prende el mensaje del
--- server ("Your attacks speed up for N s.") y lo apaga "Your attacks slow down." o la cuenta a 0.
--- Server: serverrepo docs/gameplay/SPELL_ATTACK_SPEED.md.
-local ATTACK_SPEED_ICON = 'condition_attack_speed'
-local attackSpeedEvent = nil
-local attackSpeedLeft = 0
+-- [Retro76] Iconos con cuenta regresiva para los hechizos que duran unos segundos: Frenzy / Rapid Fire
+-- (utito hur / utito san hur), Counter Stance (utito tera), Blood Ritual (utamo mort), Seed of Life (exura tera,
+-- en quien la recibe) y Rescue (exeta sio). El byte de estados del 7.6 no tiene bits libres, asi que cada icono
+-- lo prende un mensaje del server con los segundos ("... for N s.") y lo apaga otro mensaje o la cuenta a 0.
+-- Los segundos que quedan se ven sobre el icono. No cambiar estos textos sin cambiar el server
+-- (serverrepo: docs/gameplay/SPELL_ATTACK_SPEED.md y docs/gameplay/SPELLS_FEEDBACK.md).
+local TimedIcons = {
+  { id = 'condition_attack_speed', path = '/images/game/states/strengthened', tooltip = tr('Your attacks are faster'),
+    start = '^Your attacks speed up for (%d+) s%.$', stop = { 'Your attacks slow down.' } },
+  { id = 'condition_counter_stance', path = '/images/game/states/counter_stance', tooltip = tr('Counter stance: the next hits deal less damage'),
+    start = '^You take a counter stance for (%d+) s', stop = { 'Your counter stance ends.' } },
+  { id = 'condition_blood_ritual', path = '/images/game/states/blood_ritual', tooltip = tr('Blood ritual: your health turns into mana'),
+    start = '^Your blood turns into mana for (%d+) s', stop = { 'Your blood ritual ends.' } },
+  { id = 'condition_seed_of_life', path = '/images/game/states/seed_of_life', tooltip = tr('A seed of life will bloom on you'),
+    start = '^A seed of life will bloom on you in (%d+) s', stop = { 'The seed of life blooms.', 'The seed of life withers.' } },
+  { id = 'condition_rescue', path = '/images/game/states/rescue', tooltip = tr('Monsters attack you instead of your ally'),
+    start = '^You draw %d+ monsters? away from .- for (%d+) s', stop = { 'Your rescue ends.' } },
+}
+local timedLeft = {}
+local timedEvents = {}
 
-function stopAttackSpeedIcon()
-  if attackSpeedEvent then
-    removeEvent(attackSpeedEvent)
-    attackSpeedEvent = nil
+local function stopTimedIcon(def)
+  if timedEvents[def.id] then
+    removeEvent(timedEvents[def.id])
+    timedEvents[def.id] = nil
   end
-  attackSpeedLeft = 0
-  local icon = conditionPanel and conditionPanel:getChildById(ATTACK_SPEED_ICON)
+  timedLeft[def.id] = nil
+  local icon = conditionPanel and conditionPanel:getChildById(def.id)
   if icon then
     icon:destroy()
   end
 end
 
-local function tickAttackSpeedIcon()
-  attackSpeedEvent = nil
-  local icon = conditionPanel and conditionPanel:getChildById(ATTACK_SPEED_ICON)
-  if not icon or attackSpeedLeft <= 0 then
-    stopAttackSpeedIcon()
+local function tickTimedIcon(def)
+  timedEvents[def.id] = nil
+  local icon = conditionPanel and conditionPanel:getChildById(def.id)
+  local left = timedLeft[def.id] or 0
+  if not icon or left <= 0 then
+    stopTimedIcon(def)
     return
   end
-  icon:setTooltip(tr('Your attacks are faster') .. ' (' .. attackSpeedLeft .. ' s)')
-  attackSpeedLeft = attackSpeedLeft - 1
-  attackSpeedEvent = scheduleEvent(tickAttackSpeedIcon, 1000)
+  icon:setText(tostring(left))
+  icon:setTooltip(def.tooltip .. ' (' .. left .. ' s)')
+  timedLeft[def.id] = left - 1
+  timedEvents[def.id] = scheduleEvent(function() tickTimedIcon(def) end, 1000)
 end
 
-function startAttackSpeedIcon(seconds)
-  stopAttackSpeedIcon()
+local function startTimedIcon(def, seconds)
+  stopTimedIcon(def)
   if not conditionPanel then return end
   local icon = g_ui.createWidget('ConditionWidget', conditionPanel)
-  icon:setId(ATTACK_SPEED_ICON)
-  icon:setImageSource('/images/game/states/strengthened')
-  attackSpeedLeft = seconds
-  tickAttackSpeedIcon()
+  icon:setId(def.id)
+  icon:setImageSource(def.path)
+  icon:setFont('verdana-11px-rounded')
+  icon:setColor('#ffffff')
+  icon:setTextAlign(AlignBottomRight)
+  timedLeft[def.id] = seconds
+  tickTimedIcon(def)
 end
 
-function onAttackSpeedMessage(mode, text)
+function stopTimedIcons()
+  for _, def in ipairs(TimedIcons) do
+    stopTimedIcon(def)
+  end
+end
+
+function onTimedIconMessage(mode, text)
   if type(text) ~= 'string' then return end
-  local seconds = text:match('^Your attacks speed up for (%d+) s%.$')
-  if seconds then
-    startAttackSpeedIcon(tonumber(seconds))
-  elseif text == 'Your attacks slow down.' then
-    stopAttackSpeedIcon()
+  for _, def in ipairs(TimedIcons) do
+    local seconds = text:match(def.start)
+    if seconds then
+      startTimedIcon(def, tonumber(seconds))
+      return
+    end
+    for _, stopText in ipairs(def.stop) do
+      if text == stopText then
+        stopTimedIcon(def)
+        return
+      end
+    end
   end
 end
