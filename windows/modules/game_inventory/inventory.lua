@@ -55,7 +55,11 @@ function init()
     onBlessingsChange = onBlessingsChange
   })
   connect(g_game, { onGameStart = refresh })
-  connect(g_game, { onTextMessage = onTimedIconMessage })
+  -- En este cliente g_game.onTextMessage reparte por tipo de mensaje (gamelib/textmessages.lua): connect() no
+  -- recibe nada. Se escucha en todos los tipos, porque cada aviso del server llega con el suyo.
+  for _, mode in pairs(MessageModes) do
+    registerMessageMode(mode, onTimedIconMessage)
+  end
 
   g_keyboard.bindKeyDown('Ctrl+I', toggle)
 
@@ -143,7 +147,9 @@ function terminate()
     onBlessingsChange = onBlessingsChange
   })
   disconnect(g_game, { onGameStart = refresh })
-  disconnect(g_game, { onTextMessage = onTimedIconMessage })
+  for _, mode in pairs(MessageModes) do
+    unregisterMessageMode(mode, onTimedIconMessage)
+  end
   stopTimedIcons()
 
   g_keyboard.unbindKeyDown('Ctrl+I')
