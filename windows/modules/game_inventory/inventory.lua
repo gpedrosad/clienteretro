@@ -330,6 +330,7 @@ function offline()
     lastCombatControls = {}
   end
 
+  stopTimedIcons()
   conditionPanel:destroyChildren()
 
   local player = g_game.getLocalPlayer()
@@ -489,7 +490,8 @@ function onStatesChange(localPlayer, now, old)
   end
 end
 
--- [Retro76] Iconos de los hechizos en el panel de condiciones. El byte de estados del 7.6 no tiene bits
+-- [Retro76] Iconos de los hechizos en los paneles de condiciones (inventario, Health Info y barra de arriba,
+-- los mismos donde sale el escudo de utamo vita). El byte de estados del 7.6 no tiene bits
 -- libres, asi que los maneja el texto que manda el server:
 --   "<Hechizo>: ready again in N s."  -> el icono queda APAGADO con la cuenta hasta poder relanzarlo
 --   "... for N s." / "... in N s."    -> mientras dura el efecto, ENCENDIDO con los segundos del efecto
@@ -497,14 +499,20 @@ end
 -- No cambiar estos textos sin cambiar el server (serverrepo: docs/gameplay/SPELLS_FEEDBACK.md y
 -- docs/gameplay/SPELL_ATTACK_SPEED.md).
 local TimedIcons = {
+  { id = 'condition_skill_buff', path = '/images/game/states/skill_buff', names = { 'Skill Buff', 'Sharpshooter' },
+    tooltip = tr('Your skills are raised'),
+    start = '^Your skills rise by %d+ for (%d+) s%.$', stop = { 'Your skills return to normal.' } },
+  { id = 'condition_echo', path = '/images/game/states/echo', names = { 'Echo' },
+    tooltip = tr('Your next strike will echo'),
+    start = '^Your next strike will echo for (%d+) s%.$', stop = { 'Your strike echoes.', 'The echo fades.', 'The echo fades: you changed target.' } },
   { id = 'condition_attack_speed', path = '/images/game/states/strengthened', names = { 'Frenzy', 'Rapid Fire' },
     tooltip = tr('Your attacks are faster'),
     start = '^Your attacks speed up for (%d+) s%.$', stop = { 'Your attacks slow down.' } },
   { id = 'condition_counter_stance', path = '/images/game/states/counter_stance', names = { 'Counter Stance' },
-    tooltip = tr('Counter stance: the next hits deal less damage'),
+    tooltip = tr('You are in a counter stance: the next hits deal less damage'),
     start = '^You take a counter stance for (%d+) s', stop = { 'Your counter stance ends.' } },
   { id = 'condition_blood_ritual', path = '/images/game/states/blood_ritual', names = { 'Blood Ritual' },
-    tooltip = tr('Blood ritual: your health turns into mana'),
+    tooltip = tr('Your health is turning into mana'),
     start = '^Your blood turns into mana for (%d+) s', stop = { 'Your blood ritual ends.' } },
   { id = 'condition_seed_of_life', path = '/images/game/states/seed_of_life', names = { 'Seed of Life' },
     tooltip = tr('A seed of life will bloom on you'),
@@ -523,6 +531,20 @@ for _, def in ipairs(TimedIcons) do
     timedByName[name:lower()] = def
   end
 end
+-- Todos los paneles donde se ven las condiciones (cada uno con su copia del ícono).
+local function timedPanels()
+  local list = {}
+  if conditionPanel then table.insert(list, conditionPanel) end
+  local hi = modules.game_healthinfo and modules.game_healthinfo.healthInfoWindow
+  local hp = hi and hi:recursiveGetChildById('conditionPanel')
+  if hp then table.insert(list, hp) end
+  local top = modules.game_interface and modules.game_interface.getTopBar and modules.game_interface.getTopBar()
+  local states = top and top:recursiveGetChildById('states')
+  local box = states and states:getChildById('box')
+  if box then table.insert(list, box) end
+  return list
+end
+
 local timedState = {}   -- id -> { active = segundos del efecto, ready = segundos para relanzar, name = hechizo }
 local timedEvents = {}
 
@@ -532,36 +554,40 @@ local function removeTimedIcon(def)
     timedEvents[def.id] = nil
   end
   timedState[def.id] = nil
-  local icon = conditionPanel and conditionPanel:getChildById(def.id)
-  if icon then
-    icon:destroy()
+  for _, panel in ipairs(timedPanels()) do
+    local icon = panel:getChildById(def.id)
+    if icon then
+      icon:destroy()
+    end
   end
 end
 
 local function drawTimedIcon(def)
   local st = timedState[def.id]
-  if not conditionPanel or not st or (st.active <= 0 and st.ready <= 0) then
+  if not st or (st.active <= 0 and st.ready <= 0) then
     removeTimedIcon(def)
     return false
   end
-  local icon = conditionPanel:getChildById(def.id)
-  if not icon then
-    icon = g_ui.createWidget('ConditionWidget', conditionPanel)
-    icon:setId(def.id)
-    icon:setImageSource(def.path)
-    icon:setFont('verdana-11px-rounded')
-    icon:setTextAlign(AlignBottomRight)
-  end
-  if st.active > 0 then
-    icon:setOpacity(1.0)
-    icon:setColor('#ffffff')
-    icon:setText(tostring(st.active))
-    icon:setTooltip((def.tooltip or st.name or '') .. ' (' .. st.active .. ' s)')
-  else
-    icon:setOpacity(0.5)
-    icon:setColor('#c0c0c0')
-    icon:setText(tostring(st.ready))
-    icon:setTooltip((st.name or '') .. ': ' .. tr('ready again in') .. ' ' .. st.ready .. ' s')
+  for _, panel in ipairs(timedPanels()) do
+    local icon = panel:getChildById(def.id)
+    if not icon then
+      icon = g_ui.createWidget('ConditionWidget', panel)
+      icon:setId(def.id)
+      icon:setImageSource(def.path)
+      icon:setFont('verdana-11px-rounded')
+      icon:setTextAlign(AlignBottomRight)
+    end
+    if st.active > 0 then
+      icon:setOpacity(1.0)
+      icon:setColor('#ffffff')
+      icon:setText(tostring(st.active))
+      icon:setTooltip((def.tooltip or st.name or '') .. ' (' .. st.active .. ' s)')
+    else
+      icon:setOpacity(0.5)
+      icon:setColor('#c0c0c0')
+      icon:setText(tostring(st.ready))
+      icon:setTooltip((st.name or '') .. ': ' .. tr('ready again in') .. ' ' .. st.ready .. ' s')
+    end
   end
   return true
 end
