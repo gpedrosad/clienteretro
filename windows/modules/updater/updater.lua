@@ -10,6 +10,13 @@ local updaterWindow
 local loadModulesFunction
 local scheduledEvent
 local httpOperationId = 0
+-- Retro76: login que espera a que termine la actualizacion (Updater.checkBeforeLogin)
+local loginContinue
+
+-- Retro76: archivos que se cambian sin reiniciar ni recargar modulos (sprites y minimapa)
+local function isDataOnly(file)
+  return string.find(file, "data/things") or string.find(file, "data/minimap")
+end
 
 local function onLog(level, message, time)
   if level == LogError then    
@@ -153,15 +160,19 @@ local function updateFiles(data, keepCurrentFiles)
   -- update of some files require full client restart
   local forceRestart = false
   local reloadModules = false
+  local thingsChanged = false
   local forceRestartPattern = {"init.lua", "corelib", "updater", "otmod"}
   for _, file in ipairs(toUpdate) do
     for __, pattern in ipairs(forceRestartPattern) do
       if string.find(file[1], pattern) then
         forceRestart = true
       end
-      if not string.find(file[1], "data/things") then
+      if not isDataOnly(file[1]) then
         reloadModules = true
       end
+    end
+    if string.find(file[1], "data/things") then
+      thingsChanged = true
     end
   end
   
@@ -185,10 +196,19 @@ local function updateFiles(data, keepCurrentFiles)
         g_resources.updateExecutable(binary)
       end
       if restart then
+        if loginContinue then
+          -- Retro76: al volver a abrir, la pantalla de login avisa que hay que entrar de nuevo
+          g_settings.set('updated-at-login', true)
+          g_settings.save()
+        end
         g_app.restart()
       else
         if reloadModules then
           g_modules.reloadModules()
+        end
+        -- Retro76: sprites nuevos con el cliente abierto (si ya se cargaron alguna vez)
+        if thingsChanged and g_game.getClientVersion() > 0 and modules.game_things then
+          modules.game_things.load()
         end
         Updater.abort()
       end
@@ -206,6 +226,7 @@ end
 
 function Updater.terminate()
   loadModulesFunction = nil
+  loginContinue = nil
   Updater.abort()
 end
 
@@ -217,6 +238,89 @@ function Updater.abort()
     updaterWindow = nil
   end
   loadModules()
+  if loginContinue then
+    local fn = loginContinue
+    loginContinue = nil
+    fn()
+  end
+end
+
+-- Retro76: al apretar Login, preguntar a la web si hay archivos nuevos antes de conectar.
+-- Sin cambios (o si la web no responde) sigue el login enseguida. Si hay, abre la ventana del updater y los baja:
+-- sprites y minimapa se cambian con el cliente abierto y el login sigue solo; si cambio codigo del cliente
+-- (modulos, init.lua) se reinicia como al abrirlo. Doc: docs/CLIENT_UPDATER_RETRO76.md (serverrepo).
+Updater.loginTimeout = 5000
+
+local loginChecking = false
+
+function Updater.checkBeforeLogin(onContinue)
+  if loginChecking or loginContinue or updaterWindow then
+    return -- ya hay un login revisando o actualizando: este segundo intento (otro Enter) se ignora
+  end
+  if type(Services.updater) ~= 'string' or Services.updater:len() <= 4 or not g_resources.isLoadedFromArchive() then
+    return onContinue()
+  end
+
+  loginChecking = true
+  local finished = false
+  local box = displayCancelBox(tr('Please wait'), tr('Checking for updates...'))
+  local timeoutEvent
+  local function finish()
+    if finished then return false end
+    finished = true
+    loginChecking = false
+    removeEvent(timeoutEvent)
+    if box then
+      box:destroy()
+      box = nil
+    end
+    return true
+  end
+  connect(box, { onCancel = function()
+    box = nil
+    if finish() then
+      HTTP.cancel(httpOperationId)
+      if EnterGame then EnterGame.show() end
+    end
+  end })
+  timeoutEvent = scheduleEvent(function()
+    if finish() then
+      g_logger.warning("Updater: la web no respondio a tiempo, se entra sin actualizar")
+      HTTP.cancel(httpOperationId)
+      onContinue()
+    end
+  end, Updater.loginTimeout)
+
+  httpOperationId = HTTP.postJSON(Services.updater, {
+    version = APP_VERSION,
+    build = g_app.getVersion(),
+    os = g_app.getOs(),
+    platform = g_window.getPlatformType(),
+    args = {}
+  }, function(data, err)
+    if not finish() then return end
+    if err or type(data) ~= "table" or type(data["files"]) ~= "table" then
+      g_logger.warning("Updater: no se pudo revisar al entrar (" .. tostring(err or "respuesta invalida") .. ")")
+      return onContinue()
+    end
+    local localFiles = g_resources.filesChecksums()
+    local changed = false
+    for file, checksum in pairs(data["files"]) do
+      if localFiles[file] ~= checksum then
+        changed = true
+        break
+      end
+    end
+    if not changed then
+      return onContinue()
+    end
+    loginContinue = onContinue
+    updaterWindow = g_ui.displayUI('updater')
+    updaterWindow:show()
+    updaterWindow:focus()
+    updaterWindow:raise()
+    updateFiles(data)
+  end)
 end
 
 function Updater.check(args)

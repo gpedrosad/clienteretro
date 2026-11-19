@@ -18,6 +18,7 @@ local rememberPasswordBox
 local protos = {"740", "760", "772", "792", "800", "810", "854", "860", "870", "910", "961", "1000", "1077", "1090", "1096", "1098", "1099", "1100", "1200", "1220"}
 
 local checkedByUpdater = {}
+local updateCheckedForLogin = false -- Retro76: el login ya paso por Updater.checkBeforeLogin
 local waitingForHttpResults = 0
 
 -- private functions
@@ -373,6 +374,12 @@ function EnterGame.init()
 
   scheduleEvent(function()
     EnterGame.show()
+    -- Retro76: el cliente se reinicio solo al actualizarse en el login (Updater.checkBeforeLogin)
+    if g_settings.getBoolean('updated-at-login') then
+      g_settings.remove('updated-at-login')
+      g_settings.save()
+      displayInfoBox(tr('Client updated'), tr('The client downloaded new files and restarted.\nPress Login again.'))
+    end
   end, 100)
 end
 
@@ -474,6 +481,18 @@ function EnterGame.doLogin(account, password, token, host)
   g_settings.set('server', G.server)
   g_settings.set('client-version', G.clientVersion)
   g_settings.save()
+
+  -- Retro76: antes de conectar, bajar lo que haya cambiado en la web (sprites, minimapa, modulos), asi no hay
+  -- que cerrar el cliente para actualizarlo. Despues el login sigue solo con los mismos datos.
+  if Updater and Updater.checkBeforeLogin and not updateCheckedForLogin then
+    local account, password, token, customHost = G.account, G.password, G.authenticatorToken, host
+    EnterGame.hide()
+    return Updater.checkBeforeLogin(function()
+      updateCheckedForLogin = true
+      EnterGame.doLogin(account, password, token, customHost)
+      updateCheckedForLogin = false
+    end)
+  end
 
   local server_params = G.host:split(":")
   if G.host:lower():find("http") ~= nil then
