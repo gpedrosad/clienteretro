@@ -10,7 +10,7 @@ SkullWhite = 3
 SkullRed = 4
 SkullBlack = 5
 SkullOrange = 6
-SkullPink = 7 -- [Retro76] castigo de GM (/pink): al morir se pierde todo
+SkullPink = 7 -- [Retro76] castigo /pink: icono cian; ID y drop total conservados
 
 ShieldNone = 0
 ShieldWhiteYellow = 1

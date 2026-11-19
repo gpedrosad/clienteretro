@@ -60,3 +60,5 @@
 
 - [Lua][2026-11-18] **Contadores de hechizos:** guardar plazos con `g_clock.millis()` y calcular `ceil((plazo-ahora)/1000)`, en vez de descontar uno por callback. Seed of Life separa curación recibida y recarga propia; contar semillas pendientes para que florecer una no quite otra. Invisibilidad se obtiene de `onOutfitChange` + `isInvisible()`, incluyendo anillos y login, sin inferir duración del cast.
 - [UI][2026-11-18] **Condiciones visibles:** Health Info ocultaba su fila en `hideLabels`; la barra superior fija en 150 px y el inventario cortaban íconos. Usar grillas y ajustar filas/altura. Al minimizar (`window:isOn()`) no cambiar altura; recalcular con `onMaximize`. Probado con widgets reales y 21 íconos. Detalle en `Contexto/Documentacion/status-icons.md`.
+
+- [Assets][2026-11-19] **Calavera punitiva cian:** cambiar únicamente el mapeo del ID 7 (`SkullPink`) a `skull_cyan.png`, conservando comandos y estado del servidor. Las murallas eléctricas usan once IDs propios 20200–20210 y máscaras originales; el arte compartido antiguo no se recolorea en el lugar. Fuentes y prompts en `serverrepo/docs/items-and-map/DEPOT_ELECTRICO.md`.
