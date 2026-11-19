@@ -1,6 +1,6 @@
 # Calavera punitiva cian — 19 nov 2026
 
-Aplicada en las copias locales Mac y Windows; publicación pendiente.
+Publicada para Mac y Windows el 19 nov 2026 mediante el updater y ambos ZIPs.
 
 El estado 7 (`SkullPink`) usa `/images/game/skulls/skull_cyan`, PNG 11×11 RGBA con
 alpha binario y ojos/contorno azul marino. Se cambió solo la apariencia. `/pink`,
@@ -15,3 +15,5 @@ que el mapa y el OTB.
 Fuentes de ImageGen, prompts, instalación y prueba con el cliente real en
 `serverrepo/docs/items-and-map/DEPOT_ELECTRICO.md`. Mapa nuevo probado con un locker
 que contiene siete crystal coins, contra servidor aislado en 7278.
+
+Deploy de mapa/OTB: serverrepo 51ca529. Probe OK tras reinicio; 11 lockers con depotid 1.
