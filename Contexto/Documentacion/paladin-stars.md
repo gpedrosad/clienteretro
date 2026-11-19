@@ -1,9 +1,9 @@
 # Paladin Stars — 19 nov 2026
 
-Assets locales preparados, aún sin publicar. Source: serverrepo/docs/gameplay/PALADIN_STARS.md.
+Assets integrados sobre el cliente reciente; publicación autorizada en curso. Source: serverrepo/docs/gameplay/PALADIN_STARS.md.
 
 Gale Star (client 3396), Venom Star (3395), Storm Star (3393), server IDs 20211–20213.
-Tibia.dat pasa de 44/18 efectos/proyectiles a 47/21; sprites 13886 → 13937.
+Tibia.dat pasa de 44/18 efectos/proyectiles a 47/21; sprites 13986 → 14037.
 Proyectiles de protocolo 18–20, impactos 44–46, ocho orientaciones de vuelo y luz de color.
 
 Mac/Windows llevan DAT y SPR idénticos. Publicar el cliente antes del OTB/binario nuevo.
