@@ -17,9 +17,37 @@ function init()
 
   -- you can use creature:setOutfitShader("outfit_rainbow") to set shader
 
+  -- Retro76: el GM con /invisible se ve a si mismo semitransparente (los demas no lo ven)
+  g_shaders.createOutfitShader("outfit_ghost", "/shaders/outfit_default_vertex", "/shaders/outfit_ghost_fragment")
+  connect(g_game, { onTextMessage = onGhostMessage, onGameEnd = clearGhost })
 end
 
 function terminate()
+  disconnect(g_game, { onTextMessage = onGhostMessage, onGameEnd = clearGhost })
+end
+
+-- Retro76: el servidor avisa con estos mensajes al prender y apagar /invisible (commands.cpp, gmInvisible).
+-- Al entrar el GM siempre esta visible, asi que alcanza con seguir los mensajes.
+local GHOST_ON = "You are invisible."
+local GHOST_OFF = "You are visible again."
+
+local function setGhost(on)
+  local player = g_game.getLocalPlayer()
+  if player then
+    player:setOutfitShader(on and "outfit_ghost" or "outfit_default")
+  end
+end
+
+function onGhostMessage(mode, text)
+  if text == GHOST_ON then
+    setGhost(true)
+  elseif text == GHOST_OFF then
+    setGhost(false)
+  end
+end
+
+function clearGhost()
+  setGhost(false)
 end
 
 
