@@ -9,7 +9,7 @@ SkullWhite = 3
 SkullRed = 4
 SkullBlack = 5
 SkullOrange = 6
-SkullPink = 7 -- [Retro76] castigo /pink: icono cian; ID y drop total conservados
+SkullPink = 7 -- [Retro76] castigo /pink: calavera negra (skull_black.png); ID y drop total conservados
 
 ShieldNone = 0
 ShieldWhiteYellow = 1
@@ -64,7 +64,7 @@ function getSkullImagePath(skullId)
   elseif skullId == SkullOrange then
     path = '/images/game/skulls/skull_orange'
   elseif skullId == SkullPink then
-    path = '/images/game/skulls/skull_cyan'
+    path = '/images/game/skulls/skull_black' -- [Retro76] /pink: calavera negra nativa (antes cian, no se distinguia)
   end
   return path
 end
