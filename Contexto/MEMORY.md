@@ -62,3 +62,5 @@
 - [UI][2026-11-18] **Condiciones visibles:** Health Info ocultaba su fila en `hideLabels`; la barra superior fija en 150 px y el inventario cortaban íconos. Usar grillas y ajustar filas/altura. Al minimizar (`window:isOn()`) no cambiar altura; recalcular con `onMaximize`. Probado con widgets reales y 21 íconos. Detalle en `Contexto/Documentacion/status-icons.md`.
 
 - [Assets][2026-11-19] **Calavera punitiva cian:** cambiar únicamente el mapeo del ID 7 (`SkullPink`) a `skull_cyan.png`, conservando comandos y estado del servidor. Las murallas eléctricas usan once IDs propios 20200–20210 y máscaras originales; el arte compartido antiguo no se recolorea en el lugar. Fuentes y prompts en `serverrepo/docs/items-and-map/DEPOT_ELECTRICO.md`.
+
+- [Assets][2026-11-19] **Familia de calaveras:** para cambiar un color, recolorear la roja nativa conservando silueta, ojos, contorno negro y alpha; una versión frontal generada no encajaba con el resto. Cian final #00E5FF; plantilla y `recolor_cyan_skull.py` en serverrepo.
