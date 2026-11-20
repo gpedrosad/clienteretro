@@ -22,3 +22,10 @@ DAT c5508297, SPR f23b91d0, minimapa 309f31ee; HTTP 8080/8076 y ZIPs Mac/Windows
 coinciden. Reinicio ordenado, probe OK / healthy; runtime preservado.
 Respaldo ~/backups/pre-deploy-20261120-112515-complete-portico-tower.
 Sin suites ni recorrido in-game por pedido de Gonzalo.
+
+Accesos despejados (20 nov, servidor d747052): torre extendida a x170; escaleras
+alternan x169/x167, y54; acceso oeste y corredor libre en y55, sin puerta 1210.
+Murallas norte/sudoeste enlazadas con la galería; faroles del pórtico en 158,57 y 164,57.
+Sin nuevos assets: publicación de un archivo (minimapa CRC 2dee4a3c), 0 borrados.
+DAT/SPR c5508297/f23b91d0 conservados. Respaldo ThinkPad
+~/backups/pre-deploy-20261120-113712-clear-temple-access.
