@@ -17,4 +17,8 @@ Respaldo ~/backups/pre-deploy-20261120-110552-temple-details.
 Corrección del pórtico y torre sureste: arco completo de cuatro casillas, mismos clients
 3229/3228, anclas 160,57,7 y 162,57,7. Escaleras nuevas 20260/3217 (sube) y 20261/3214 (baja).
 Se añaden 13 sprites: 14343 → 14356. Incluye bindings Lua y mapa, sin cambios de C++.
-Assets preparados; pendiente publicar la corrección. Sin suites ni recorrido in-game.
+Corrección publicada en la ThinkPad: fuente cliente 71ae582, servidor a3325f4.
+DAT c5508297, SPR f23b91d0, minimapa 309f31ee; HTTP 8080/8076 y ZIPs Mac/Windows
+coinciden. Reinicio ordenado, probe OK / healthy; runtime preservado.
+Respaldo ~/backups/pre-deploy-20261120-112515-complete-portico-tower.
+Sin suites ni recorrido in-game por pedido de Gonzalo.
