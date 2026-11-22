@@ -259,6 +259,9 @@ function onInventoryChange(player, slot, item, oldItem)
     itemWidget:setStyle(InventorySlotStyles[slot])
     itemWidget:setItem(nil)
   end
+  if slot == InventorySlotFeet then
+    refreshNativeSpellIcons(player)
+  end
 end
 
 function onBlessingsChange(player, blessings, oldBlessings)
@@ -529,6 +532,12 @@ local TimedIcons = {
   { id = 'condition_invisible', path = '/images/game/spells/defaultspells',
     clip = Spells.getImageClip(SpellIcons.invisible[1], 'Default'), names = {},
     tooltip = tr('You are invisible'), native = function(player) return player:isInvisible() end },
+  { id = 'condition_soft_boots', path = '/images/game/states/soft_boots', names = {},
+    tooltip = tr('Soft Boots active (+3 HP and +12 MP every 3 s)'),
+    native = function(player)
+      local boots = player:getInventoryItem(InventorySlotFeet)
+      return boots ~= nil and boots:getId() == 3549
+    end },
   { id = 'condition_skill_buff', path = '/images/game/states/skill_buff', names = { 'Skill Buff', 'Sharpshooter' },
     tooltip = tr('Your skills are raised'),
     start = '^Your skills rise by %d+ for (%d+) s%.$', stop = { 'Your skills return to normal.' } },
