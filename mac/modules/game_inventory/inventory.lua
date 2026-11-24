@@ -536,7 +536,8 @@ local TimedIcons = {
     tooltip = tr('Soft Boots active (+3 HP and +12 MP every 3 s)'),
     native = function(player)
       local boots = player:getInventoryItem(InventorySlotFeet)
-      return boots ~= nil and boots:getId() == 3549
+      -- 6070 = Soft Boots puestas (brillan como los anillos, serverrepo docs/gameplay/SOFT_BOOTS.md)
+      return boots ~= nil and (boots:getId() == 3549 or boots:getId() == 6070)
     end },
   { id = 'condition_skill_buff', path = '/images/game/states/skill_buff', names = { 'Skill Buff', 'Sharpshooter' },
     tooltip = tr('Your skills are raised'),
