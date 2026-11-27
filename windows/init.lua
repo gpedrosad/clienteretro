@@ -5,17 +5,17 @@ DEFAULT_LAYOUT = "retro"
 
 Services = {
   website = "",
-  -- Auto-actualizacion: al abrirse baja lo que cambio (sprites, modulos) desde la web de la ThinkPad.
-  updater = "http://192.168.1.17:8080/api/updater.php",
+  -- Auto-actualizacion: al abrirse baja lo que cambio (sprites, modulos) desde la web del VPS (Vultr, Sao Paulo).
+  updater = "http://216.128.175.142:8080/api/updater.php",
   stats = "",
   crash = "",
   feedback = "",
   status = ""
 }
 
--- Solo el servidor local de la ThinkPad: el VPS de retro76.cl ya no existe (nov 2026).
+-- El servidor corre en el VPS de Vultr en Sao Paulo desde el 27 nov 2026 (antes, la ThinkPad en la red local).
 Servers = {
-  ["Retro76 (local)"] = "192.168.1.17:7171:760",
+  ["Retro76"] = "216.128.175.142:7171:760",
 }
 
 ALLOW_CUSTOM_SERVERS = false
