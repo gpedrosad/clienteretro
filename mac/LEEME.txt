@@ -1,10 +1,12 @@
-CLIENTE OFICIAL RETRO — macOS
-=============================
+CLIENTE OFICIAL RETRO76 — macOS
+===============================
 
-Servidor: 192.168.1.17:7171 (Tibia 7.6, servidor local de la ThinkPad)
+Servidor: retro76.cl:7171 (Tibia 7.6). El cliente ya viene configurado.
+Web y ayuda: https://retro76.cl/cliente
 
 REQUISITOS:
-- XQuartz: https://www.xquartz.org/
+- XQuartz (gratis): https://www.xquartz.org/ . Si el instalador lo pide, cerrar sesion y volver a entrar.
+- En un Mac con chip Apple, si macOS pide instalar Rosetta, aceptar.
 
 COMO JUGAR:
 1. Descomprimir el zip.

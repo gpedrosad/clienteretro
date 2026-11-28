@@ -1,11 +1,14 @@
-CLIENTE OFICIAL RETRO — Windows
-===============================
+CLIENTE OFICIAL RETRO76 — Windows
+=================================
 
-Servidor: 192.168.1.17:7171 (Tibia 7.6, servidor local de la ThinkPad)
+Servidor: retro76.cl:7171 (Tibia 7.6). El cliente ya viene configurado.
+Web y ayuda: https://retro76.cl/cliente
 
 COMO JUGAR:
 1. Descomprimir toda la carpeta (otclient_gl.exe, Iniciar Cliente.bat, data.zip...)
 2. Doble clic en "Iniciar Cliente.bat"
+   Si Windows muestra "Windows protegio su PC": "Mas informacion" -> "Ejecutar de todas formas"
+   (es normal: el cliente no tiene una firma paga).
 3. Iniciar sesión con tu cuenta
 
 ACTUALIZACIONES:
