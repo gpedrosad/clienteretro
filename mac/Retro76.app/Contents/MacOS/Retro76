@@ -1,26 +1,137 @@
 #!/bin/bash
 # Lanzador de Retro76.app. El cliente (otclient_mac + data.zip) va en Contents/Resources: publish_client.py
 # de serverrepo los copia ahí al armar Retro76-Mac.zip. El binario busca data.zip en la carpeta actual.
+#
+# Hace solo lo que antes había que hacer a mano:
+#  1. Si se abrió desde la carpeta descargada (App Translocation), ofrece moverse a Aplicaciones y se reabre.
+#  2. Si falta XQuartz, ofrece instalarlo: baja el instalador oficial, comprueba su SHA-256, lo abre y espera.
+# Probar sin instalar nada: RETRO76_DRY=1 (no abre el instalador ni el juego); RETRO76_YES=1 contesta "sí"
+# a las preguntas sin mostrar ventanas.
 RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
 APP="$(cd "$RES/../.." && pwd)"
 
+XQ_VERSION="2.8.6"
+XQ_URL="https://github.com/XQuartz/XQuartz/releases/download/XQuartz-$XQ_VERSION/XQuartz-$XQ_VERSION.pkg"
+XQ_SHA256="9ac35a505095bfbd3009c3b4772f0c6421e2f79c4210ab908459270d1c447909"
+X11LIB="${RETRO76_X11LIB:-/opt/X11/lib/libX11.6.dylib}"   # otclient_mac está enlazado contra la X11 de XQuartz
+
+# ---- textos (idioma del Mac: español, portugués o inglés)
+LANG2="$(defaults read -g AppleLanguages 2>/dev/null | tr -d ' "()\n,' | cut -c1-2)"
+case "$LANG2" in
+  es)
+    T_MOVE="Retro76 tiene que estar en Aplicaciones para funcionar. ¿Lo muevo ahora?"
+    T_MOVE_BTN="Mover a Aplicaciones"; T_CANCEL="Cancelar"; T_OK="OK"
+    T_MOVE_FAIL="No se pudo mover. Arrastra Retro76 a la carpeta Aplicaciones y ábrelo desde ahí."
+    T_XQ="Retro76 necesita XQuartz (gratis, unos 120 MB) para mostrar el juego. ¿Lo instalo ahora? Se abrirá el instalador oficial: sigue los pasos y pon la contraseña de tu Mac."
+    T_XQ_BTN="Instalar XQuartz"
+    T_DL="Descargando XQuartz (unos 120 MB)…"
+    T_DL_FAIL="No se pudo descargar XQuartz. Se abrirá xquartz.org para instalarlo a mano; después vuelve a abrir Retro76."
+    T_WAIT="Cuando termine el instalador de XQuartz, Retro76 se abre solo."
+    T_LATER="XQuartz todavía no está instalado. Cuando termines de instalarlo, vuelve a abrir Retro76." ;;
+  pt)
+    T_MOVE="O Retro76 precisa estar em Aplicativos para funcionar. Posso mover agora?"
+    T_MOVE_BTN="Mover para Aplicativos"; T_CANCEL="Cancelar"; T_OK="OK"
+    T_MOVE_FAIL="Não foi possível mover. Arraste o Retro76 para a pasta Aplicativos e abra por lá."
+    T_XQ="O Retro76 precisa do XQuartz (grátis, uns 120 MB) para mostrar o jogo. Posso instalar agora? Vai abrir o instalador oficial: siga os passos e digite a senha do seu Mac."
+    T_XQ_BTN="Instalar XQuartz"
+    T_DL="Baixando o XQuartz (uns 120 MB)…"
+    T_DL_FAIL="Não foi possível baixar o XQuartz. Vai abrir xquartz.org para instalar manualmente; depois abra o Retro76 de novo."
+    T_WAIT="Quando o instalador do XQuartz terminar, o Retro76 abre sozinho."
+    T_LATER="O XQuartz ainda não está instalado. Quando terminar a instalação, abra o Retro76 de novo." ;;
+  *)
+    T_MOVE="Retro76 needs to be in Applications to work. Move it now?"
+    T_MOVE_BTN="Move to Applications"; T_CANCEL="Cancel"; T_OK="OK"
+    T_MOVE_FAIL="Couldn't move it. Drag Retro76 to the Applications folder and open it from there."
+    T_XQ="Retro76 needs XQuartz (free, about 120 MB) to show the game. Install it now? The official installer will open: follow the steps and enter your Mac password."
+    T_XQ_BTN="Install XQuartz"
+    T_DL="Downloading XQuartz (about 120 MB)…"
+    T_DL_FAIL="Couldn't download XQuartz. xquartz.org will open so you can install it by hand; then open Retro76 again."
+    T_WAIT="When the XQuartz installer finishes, Retro76 opens by itself."
+    T_LATER="XQuartz isn't installed yet. When the installation finishes, open Retro76 again." ;;
+esac
+
 aviso() {
-  osascript -e "display dialog \"$1\" buttons {\"OK\"} default button 1 with title \"Retro76\" with icon caution" >/dev/null 2>&1
+  [ -n "$RETRO76_DRY" ] && { echo "AVISO: $1"; return; }
+  osascript -e "display dialog \"$1\" buttons {\"$T_OK\"} default button 1 with title \"Retro76\" with icon caution" >/dev/null 2>&1
+}
+# pregunta "texto" "botón sí": 0 si eligió el botón sí
+pregunta() {
+  [ -n "$RETRO76_YES" ] && return 0
+  local r
+  r="$(osascript -e "button returned of (display dialog \"$1\" buttons {\"$T_CANCEL\", \"$2\"} default button \"$2\" with title \"Retro76\" with icon note)" 2>/dev/null)"
+  [ "$r" = "$2" ]
+}
+notifica() {
+  [ -n "$RETRO76_DRY" ] && { echo "NOTIFICACIÓN: $1"; return; }
+  osascript -e "display notification \"$1\" with title \"Retro76\"" >/dev/null 2>&1
 }
 
-# macOS abre las apps recién descargadas desde una copia de solo lectura (App Translocation) hasta que se
-# mueven con el Finder. Desde ahí no se puede quitar la cuarentena del binario.
+# ---- 1. Abierta desde la carpeta descargada: macOS la corre desde una copia de solo lectura (App
+#         Translocation) y desde ahí no se puede quitar la cuarentena. Se mueve sola a Aplicaciones.
 case "$APP" in
   */AppTranslocation/*)
-    aviso "Antes de jugar, arrastrá Retro76.app a la carpeta Aplicaciones (o a cualquier otra carpeta) y abrilo desde ahí."
+    ORIG="$(/usr/bin/security translocate-original-path "$APP" 2>/dev/null)"
+    if [ -n "$ORIG" ] && [ -d "$ORIG" ] && pregunta "$T_MOVE" "$T_MOVE_BTN"; then
+      for DIR in /Applications "$HOME/Applications"; do
+        mkdir -p "$DIR" 2>/dev/null
+        DEST="$DIR/Retro76.app"
+        [ "$ORIG" = "$DEST" ] && break
+        if [ -e "$DEST" ]; then
+          # versión anterior: se reemplaza (los datos del cliente están en ~/Library/Application Support)
+          OLD="$DIR/.Retro76-anterior.app"
+          rm -rf "$OLD" 2>/dev/null
+          mv "$DEST" "$OLD" 2>/dev/null || continue
+        fi
+        if mv "$ORIG" "$DEST" 2>/dev/null; then
+          rm -rf "$DIR/.Retro76-anterior.app" 2>/dev/null
+          xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
+          [ -n "$RETRO76_DRY" ] && { echo "movida a $DEST"; exit 0; }
+          open "$DEST"
+          exit 0
+        fi
+        [ -e "$DIR/.Retro76-anterior.app" ] && mv "$DIR/.Retro76-anterior.app" "$DEST" 2>/dev/null
+      done
+    fi
+    aviso "$T_MOVE_FAIL"
     exit 0 ;;
 esac
 
-if [ ! -e /opt/X11/lib/libX11.6.dylib ]; then  # otclient_mac está enlazado contra la X11 de XQuartz
-  aviso "Retro76 necesita XQuartz. Se va a abrir xquartz.org: instalalo, reiniciá la sesión y volvé a abrir Retro76."
-  open "https://www.xquartz.org/"
-  exit 0
+# ---- 2. XQuartz: si falta, se baja el instalador oficial, se comprueba y se abre.
+if [ ! -e "$X11LIB" ]; then
+  pregunta "$T_XQ" "$T_XQ_BTN" || exit 0
+  CACHE="$HOME/Library/Caches/Retro76"
+  PKG="$CACHE/XQuartz-$XQ_VERSION.pkg"
+  mkdir -p "$CACHE"
+  if [ ! -s "$PKG" ] || [ "$(shasum -a 256 "$PKG" | cut -d' ' -f1)" != "$XQ_SHA256" ]; then
+    notifica "$T_DL"
+    rm -f "$PKG"
+    if ! curl -fsSL --retry 3 -o "$PKG.part" "$XQ_URL" || \
+       [ "$(shasum -a 256 "$PKG.part" | cut -d' ' -f1)" != "$XQ_SHA256" ]; then
+      rm -f "$PKG.part"
+      aviso "$T_DL_FAIL"
+      open "https://www.xquartz.org/"
+      exit 0
+    fi
+    mv "$PKG.part" "$PKG"
+  fi
+  [ -n "$RETRO76_DRY" ] && { echo "instalador listo y comprobado: $PKG"; exit 0; }
+  open "$PKG"
+  notifica "$T_WAIT"
+  # Espera a que termine el instalador (hasta 30 min).
+  for _ in $(seq 1 900); do
+    [ -e "$X11LIB" ] && break
+    sleep 2
+  done
+  if [ ! -e "$X11LIB" ]; then
+    aviso "$T_LATER"
+    exit 0
+  fi
+  sleep 5
+  # Sin reiniciar la sesión: se carga el servicio de XQuartz para este usuario.
+  launchctl load -w /Library/LaunchAgents/org.xquartz.startx.plist 2>/dev/null
 fi
+
+[ -n "$RETRO76_DRY" ] && { echo "listo para abrir el juego"; exit 0; }
 
 open -a XQuartz
 sleep 3

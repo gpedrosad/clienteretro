@@ -5,16 +5,15 @@ Servidor: retro76.cl:7171 (Tibia 7.6). El cliente ya viene configurado.
 Web y ayuda: https://retro76.cl/cliente
 
 REQUISITOS:
-- XQuartz (gratis): https://www.xquartz.org/ . Si el instalador lo pide, cerrar sesion y volver a entrar.
+- XQuartz (gratis, unos 120 MB). Si no lo tienes, Retro76 te ofrece instalarlo al abrirlo.
 - En un Mac con chip Apple, si macOS pide instalar Rosetta, aceptar.
 
 COMO JUGAR:
 1. Descomprimir el zip.
-2. Arrastrar Retro76.app a la carpeta Aplicaciones (o a cualquier otra carpeta).
-   Hay que moverla con el Finder: si se abre directo desde la carpeta descomprimida, macOS la corre
-   desde una copia de solo lectura y la app avisa que hay que moverla.
-3. Abrir Retro76.app. La primera vez macOS la bloquea porque no es de la App Store:
-   clic derecho → Abrir, o Ajustes del Sistema → Privacidad y seguridad → "Abrir igualmente".
+2. Abrir Retro76.app. La primera vez macOS la bloquea porque no es de la App Store:
+   clic derecho -> Abrir, o Ajustes del Sistema -> Privacidad y seguridad -> "Abrir igualmente".
+3. Retro76 ofrece moverse sola a Aplicaciones y, si falta XQuartz, instalarlo: aceptar,
+   seguir el instalador y poner la contraseña del Mac. Al terminar, el juego se abre solo.
 4. Iniciar sesión con tu cuenta
 
 GIRAR SIN CAMINAR:
